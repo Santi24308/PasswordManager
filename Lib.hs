@@ -1,6 +1,9 @@
 import Data.Char (isDigit, isLower, isUpper, isAlpha, isPunctuation)
+import System.Random (randomRIO)
 
 
+
+--primary's functions--
 
 passwordAnalyzer :: String -> String
 passwordAnalyzer password  
@@ -8,15 +11,30 @@ passwordAnalyzer password
     |scoring  password < 8 ="Media : contraseña aceptable.\n" ++ "Sugerencias: \n" ++ unlines (suggestion password)
     |otherwise  = "Fuerte : contraseña segura.\n " ++ "Sugerencias: \n" ++ unlines (suggestion password)
 
+
+passwordBuilder :: Int -> [Condition] -> IO String
+passwordBuilder passwordLength conditions = sequence (replicate passwordLength (wordWith conditions))
+
+--Imperative way-- 
+wordWith ::  [Condition] ->  IO Char
+wordWith listOfconditions = do 
+    randomChar <- generateChar pool
+    if satisfiesCondition randomChar listOfconditions 
+        then return randomChar
+    else wordWith listOfconditions
+
+--auxiliar's function-- 
 scoring :: String -> Float 
 scoring password =  (0.4 * lenghtScoring password) + (0.3 * commonWordsScoring password) + (0.3 * characterVarietyScoring password)
 
 suggestion ::  String -> [String]
 suggestion password = [ msg | (condition, msg) <- conditionsWithMessages, not (condition password) ] --(condition, msg) <- iteraccion sobre listas 
 
+--Choose a random element of pool 
+generateChar :: String -> IO Char
+generateChar listOfChars = (listOfChars !!) <$> randomRIO (0, length listOfChars - 1)  
 
 --type of scoring--   
-
 lenghtScoring :: String -> Float 
 lenghtScoring password 
     | length password < 6 = 2
@@ -38,22 +56,24 @@ characterVarietyScoring password
     |otherwise = 0 
 
 --Conditions--
-digitCondition :: String -> Bool
+type Condition = String -> Bool
+
+digitCondition :: Condition
 digitCondition  = any isDigit  
 
-mayusCondition ::  String -> Bool
+mayusCondition :: Condition
 mayusCondition  = any isUpper
 
-lowerCondition :: String -> Bool
+lowerCondition :: Condition
 lowerCondition  =  any isLower 
 
-punctuationCondition :: String -> Bool
+punctuationCondition :: Condition
 punctuationCondition  =  any isPunctuation 
 
-conditions :: [String -> Bool]
+conditions :: [Condition]
 conditions = [digitCondition , mayusCondition, lowerCondition, punctuationCondition]
 
-conditionsWithMessages :: [(String -> Bool, String)]
+conditionsWithMessages :: [(Condition, String)]
 conditionsWithMessages =
     [ (digitCondition, "Agregar al menos un número")
     , (mayusCondition, "Agregar al menos una letra mayúscula")
@@ -64,7 +84,23 @@ conditionsWithMessages =
 countConditions :: String ->  Int 
 countConditions password = length (filter (\condition -> condition password) conditions)
 
+satisfiesCondition :: Char -> [Condition] -> Bool
+satisfiesCondition word listOfconditions = any (\condition -> condition [word]) listOfconditions
+
 --Dictionary --
 commonWords :: [String]
 commonWords = ["hola"]
+
+-- CharSet--
+
+digits, uppercase, lowercase, punctuation :: String
+digits = ['0'..'9']
+uppercase = ['A'..'Z']
+lowercase = ['a'..'z']
+punctuation = "!@#$%^&*()-_=+[]{};:,.<>?/|"
+
+pool:: String
+pool = digits ++ uppercase ++ lowercase ++ punctuation
+
+
 
