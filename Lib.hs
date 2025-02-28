@@ -1,6 +1,7 @@
 import Data.Char (isDigit, isLower, isUpper, isAlpha, isPunctuation)
 import System.Random (randomRIO)
-
+import System.IO
+import Data.Time (getCurrentTime)
 
 
 --primary's functions--
@@ -14,6 +15,18 @@ passwordAnalyzer password
 
 passwordBuilder :: Int -> [Condition] -> IO String
 passwordBuilder passwordLength conditions = sequence (replicate passwordLength (wordWith conditions))
+
+passwordEncryptor:: String -> Int -> String
+passwordEncryptor password shift = asciiToPassword (map (+ shift) (passwordToAscii password))
+
+passwordDecryptor :: String -> Int -> String
+passwordDecryptor password shift = asciiToPassword (map (- shift) (passwordToAscii password))
+
+writeLog :: FilePath -> String -> IO ()
+writeLog logFile message = do
+    currentTime <- getCurrentTime                     --getting the time 
+    let logMessage = show currentTime ++ "-" message  --This is the structure of the logs 
+    appendFile logFile (logMessage ++ "\n")           --Adding the message to the logFile
 
 --Imperative way-- 
 wordWith ::  [Condition] ->  IO Char
@@ -33,6 +46,26 @@ suggestion password = [ msg | (condition, msg) <- conditionsWithMessages, not (c
 --Choose a random element of pool 
 generateChar :: String -> IO Char
 generateChar listOfChars = (listOfChars !!) <$> randomRIO (0, length listOfChars - 1)  
+
+--Transalate char-> ASCII 
+asciiConverter :: Char -> Int
+asciiConverter letter = ord letter
+
+passwordToAscii :: String -> [Int]
+passwordToAscii word =  map (\letter -> asciiConverter letter ) word
+
+--Simplificated way--
+asciiToPassword ::[Int] -> String
+asciiToPassword  = map (asciiConverterReverse . asciiCycle) 
+
+asciiConverterReverse :: Int -> Char
+asciiConverterReverse number = chr number
+
+asciiCycle :: Int -> Int
+asciiCycle number 
+    | number > 126 = 33 + ((number - 33) `mod` 94)
+    | number < 33  = 126 - ((33 - number) `mod` 94)
+    | otherwise    = number
 
 --type of scoring--   
 lenghtScoring :: String -> Float 
